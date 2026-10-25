@@ -3,12 +3,15 @@ package com.fintech.transaction.config;
 import com.fintech.transaction.security.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
@@ -20,15 +23,17 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-            // Configure stateless session management (standard for JWT APIs)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Allow anyone to access the login endpoint to get a token
-                .requestMatchers("/api/auth/login").permitAll()
-                // Secure all other endpoints (including /api/transactions)
+                // Public authentication endpoint
+                .requestMatchers("/api/auth/**").permitAll()
+                // Role-Based Access Control (RBAC):
+                // Clients/Users can ingest transactions
+                .requestMatchers(HttpMethod.POST, "/api/transactions/**").hasAnyRole("USER", "CLIENT", "ADMIN")
+                // Only Administrators and Auditors can view all transactions and audit status
+                .requestMatchers(HttpMethod.GET, "/api/transactions/**").hasAnyRole("ADMIN", "AUDITOR")
                 .anyRequest().authenticated()
             )
-            // Insert our custom JWT filter before the standard authentication filter
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         
         return http.build();

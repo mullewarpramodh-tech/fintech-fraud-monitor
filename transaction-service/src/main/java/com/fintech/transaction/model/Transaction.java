@@ -16,6 +16,7 @@ public class Transaction {
     private BigDecimal amount;
     private String currency;
     private String status;
+    private String fraudReason;
     private LocalDateTime timestamp;
 
     public Transaction() {}
@@ -39,6 +40,8 @@ public class Transaction {
     public void setCurrency(String currency) { this.currency = currency; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getFraudReason() { return fraudReason; }
+    public void setFraudReason(String fraudReason) { this.fraudReason = fraudReason; }
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
 }

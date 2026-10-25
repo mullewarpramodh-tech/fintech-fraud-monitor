@@ -5,20 +5,20 @@ spring:
   application:
     name: fraud-service
   
-  # Connect to the exact same Neon database so we can update the status
+  # Connect to Neon Serverless PostgreSQL with environment variable support
   datasource:
-    url: jdbc:postgresql://ep-dry-shape-ayu0rbwk.c-5.us-east-2.aws.neon.tech:5432/neondb?sslmode=require
-    username: neondb_owner
-    password: npg_kbZEde71mMUI
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://ep-dry-shape-ayu0rbwk.c-5.us-east-2.aws.neon.tech:5432/neondb?sslmode=require}
+    username: ${SPRING_DATASOURCE_USERNAME:neondb_owner}
+    password: ${SPRING_DATASOURCE_PASSWORD:npg_kbZEde71mMUI}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
 
-  # Connect to the Embedded Kafka running on the Transaction Service
+  # Connect to Kafka Broker
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: fraud-detection-group
       auto-offset-reset: earliest
