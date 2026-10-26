@@ -5,27 +5,24 @@ spring:
   application:
     name: transaction-service
   
-  # Neon Serverless Postgres Configuration
+  # Neon Serverless Postgres Configuration with environment variable support
   datasource:
-    url: jdbc:postgresql://ep-dry-shape-ayu0rbwk.c-5.us-east-2.aws.neon.tech:5432/neondb?sslmode=require
-    username: neondb_owner
-    password: npg_kbZEde71mMUI
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://ep-dry-shape-ayu0rbwk.c-5.us-east-2.aws.neon.tech:5432/neondb?sslmode=require}
+    username: ${SPRING_DATASOURCE_USERNAME:neondb_owner}
+    password: ${SPRING_DATASOURCE_PASSWORD:npg_kbZEde71mMUI}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
+    show-sql: false
 
   # Local Embedded Kafka Configuration
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-  expiration: 86400000 
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiration: 86400000 # 24 hours
