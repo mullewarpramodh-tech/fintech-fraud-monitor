@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributed FinTech Fraud Monitor - Real-Time Console</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #090d16;
+            --card-bg: #131d2e;
+            --card-border: #23354d;
+            --table-header: #0e1726;
+            --text-heading: #f8fafc;
+            --text-body: #e2e8f0;
+            --text-subtle: #94a3b8;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+            --accent-cyan: #38bdf8;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-body);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .pulse-dot {
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 10px var(--accent-green);
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .metric-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .metric-label {
+            color: #94a3b8 !important;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .metric-sub {
+            color: #64748b !important;
+            font-size: 0.75rem;
+        }
+
+        .action-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        /* High-Contrast Table Styling */
+        .table-container {
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: var(--card-bg);
+        }
+
+        .table-custom {
+            margin-bottom: 0;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .table-custom thead th {
+            background-color: var(--table-header) !important;
+            color: #cbd5e1 !important;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 16px 18px;
+            border-bottom: 2px solid var(--card-border) !important;
+        }
+
+        .table-custom tbody tr {
+            background-color: var(--card-bg) !important;
+            transition: background-color 0.15s ease-in-out;
+        }
+
+        .table-custom tbody tr:hover {
+            background-color: #1a273e !important;
+        }
+
+        .table-custom tbody td {
+            background-color: transparent !important;
+            color: var(--text-body) !important;
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+            vertical-align: middle;
+            font-size: 0.92rem;
+        }
+
+        /* Status Badges */
+        .badge-approved {
+            background: rgba(16, 185, 129, 0.18) !important;
+            color: #34d399 !important;
+            border: 1px solid rgba(16, 185, 129, 0.4) !important;
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+
+        .badge-fraud {
+            background: rgba(239, 68, 68, 0.22) !important;
+            color: #f87171 !important;
+            border: 1px solid rgba(239, 68, 68, 0.5) !important;
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+
+        .badge-pending {
+            background: rgba(245, 158, 11, 0.2) !important;
+            color: #fbbf24 !important;
+            border: 1px solid rgba(245, 158, 11, 0.45) !important;
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+
+        .btn-simulator {
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 9px 16px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+    </style>
+</head>
+<body class="pb-5">
+
+<!-- Top Navigation -->
+<nav class="navbar navbar-dark border-bottom border-secondary py-3" style="background-color: #060a12;">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand d-flex align-items-center" href="#">
+            <i class="fa-solid fa-shield-halved text-warning me-2 fs-4"></i>
+            <span class="fw-bold">FinTech Fraud Monitor <span class="badge bg-primary ms-2" style="font-size: 0.72rem;">Spring Boot 3.3 + Kafka</span></span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+            <span class="d-flex align-items-center small" style="color: #94a3b8;">
+                <span class="pulse-dot me-2"></span> Kafka Broker: <strong class="text-white ms-1">localhost:9092</strong>
+            </span>
+            <span class="badge bg-dark border border-secondary text-info px-3 py-2">
+                <i class="fa-solid fa-database me-1"></i> Neon PostgreSQL
+            </span>
+            <span class="badge bg-dark border border-secondary text-success px-3 py-2">
+                <i class="fa-solid fa-lock me-1"></i> RBAC: ROLE_ADMIN
+            </span>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid px-4 mt-4">
+
+    <!-- KPI Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="metric-label">Total Ingested</span>
+                        <h2 class="fw-bold mb-0 mt-1" style="color: #38bdf8;" id="kpi-total">0</h2>
+                    </div>
+                    <div class="p-3 rounded-circle" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8;">
+                        <i class="fa-solid fa-receipt fs-4"></i>
+                    </div>
+                </div>
+                <span class="metric-sub mt-2 d-block">Published to <code>transaction-events</code></span>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="metric-label">Approved (Clean)</span>
+                        <h2 class="fw-bold mb-0 mt-1" style="color: #34d399;" id="kpi-approved">0</h2>
+                    </div>
+                    <div class="p-3 rounded-circle" style="background: rgba(16, 185, 129, 0.12); color: #34d399;">
+                        <i class="fa-solid fa-circle-check fs-4"></i>
+                    </div>
+                </div>
+                <span class="metric-sub mt-2 d-block">Passed multi-tier fraud checks</span>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="metric-label">High-Value Fraud</span>
+                        <h2 class="fw-bold mb-0 mt-1" style="color: #f87171;" id="kpi-high-value">0</h2>
+                    </div>
+                    <div class="p-3 rounded-circle" style="background: rgba(239, 68, 68, 0.12); color: #f87171;">
+                        <i class="fa-solid fa-triangle-exclamation fs-4"></i>
+                    </div>
+                </div>
+                <span class="metric-sub mt-2 d-block">Single transaction &gt; $10,000 threshold</span>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="metric-label">Velocity Spikes</span>
+                        <h2 class="fw-bold mb-0 mt-1" style="color: #fbbf24;" id="kpi-velocity">0</h2>
+                    </div>
+                    <div class="p-3 rounded-circle" style="background: rgba(245, 158, 11, 0.12); color: #fbbf24;">
+                        <i class="fa-solid fa-bolt fs-4"></i>
+                    </div>
+                </div>
+                <span class="metric-sub mt-2 d-block">60-sec sliding window &gt; 3 txns</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simulator & Trigger Controls -->
+    <div class="action-card p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+            <div>
+                <h5 class="fw-bold mb-1 text-white"><i class="fa-solid fa-flask-vial text-info me-2"></i> Real-Time Transaction Simulator</h5>
+                <p class="mb-0 small" style="color: #94a3b8;">Simulate clean or fraudulent financial transactions directly through the Kafka ingestion pipeline.</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-outline-success btn-simulator" onclick="sendCleanTransaction()">
+                    <i class="fa-solid fa-circle-check me-1"></i> Send Clean Txn ($500)
+                </button>
+                <button class="btn btn-outline-danger btn-simulator" onclick="sendHighValueAnomaly()">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Send Whale Anomaly ($25,000)
+                </button>
+                <button class="btn btn-outline-warning btn-simulator" onclick="sendVelocityBurst()">
+                    <i class="fa-solid fa-bolt me-1"></i> Send Velocity Spike (4 Rapid Txns)
+                </button>
+            </div>
+        </div>
+
+        <!-- Custom Transaction Ingestion Row -->
+        <form id="custom-tx-form" onsubmit="handleCustomSubmit(event)" class="row g-2 align-items-center pt-3 border-top border-secondary">
+            <div class="col-md-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-dark border-secondary text-light">Account ID</span>
+                    <input type="text" class="form-control bg-dark border-secondary text-white" id="input-account" placeholder="e.g. ACC-CLIENT-99" required value="ACC-USER-101">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-dark border-secondary text-light">Amount ($)</span>
+                    <input type="number" step="0.01" class="form-control bg-dark border-secondary text-white" id="input-amount" placeholder="e.g. 750.00" required value="450.00">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select form-select-sm bg-dark border-secondary text-white" id="input-currency">
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="INR">INR (₹)</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
+                    <i class="fa-solid fa-paper-plane me-1"></i> Ingest to Kafka
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Real-Time Audit Trail Table -->
+    <div class="action-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold mb-1 text-white"><i class="fa-solid fa-list-check text-primary me-2"></i> Live Audit Trail (Neon PostgreSQL)</h5>
+                <p class="mb-0 small" style="color: #94a3b8;">Auto-refreshes every 2 seconds via authenticated JWT REST endpoints.</p>
+            </div>
+            <span class="badge bg-dark border border-secondary px-3 py-2" style="color: #38bdf8;" id="refresh-status">
+                <i class="fa-solid fa-rotate fa-spin me-1"></i> Live Stream Active
+            </span>
+        </div>
+
+        <div class="table-container">
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th>Txn ID</th>
+                        <th>Timestamp</th>
+                        <th>Account ID</th>
+                        <th>Amount</th>
+                        <th>Currency</th>
+                        <th>Status</th>
+                        <th>Audit Reason &amp; Detection Rule</th>
+                    </tr>
+                </thead>
+                <tbody id="transactions-body">
+                    <tr>
+                        <td colspan="7" class="text-center py-4" style="color: #94a3b8;">Connecting to Kafka ingestion stream...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    let authToken = null;
+
+    // 1. Authenticate with Spring Security to acquire JWT token
+    async function initAuth() {
+        try {
+            const resp = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: 'admin', role: 'ADMIN' })
+            });
+            const data = await resp.json();
+            authToken = data.token;
+            fetchTransactions();
+        } catch (e) {
+            console.error("Auth failed:", e);
+        }
+    }
+
+    // 2. Fetch all transactions from REST endpoint
+    async function fetchTransactions() {
+        if (!authToken) return;
+        try {
+            const resp = await fetch('/api/transactions', {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (!resp.ok) return;
+
+            const transactions = await resp.json();
+            transactions.sort((a, b) => b.id - a.id);
+
+            renderTable(transactions);
+            updateKPIs(transactions);
+        } catch (e) {
+            console.error("Polling error:", e);
+        }
+    }
+
+    // 3. Render transactions to DOM
+    function renderTable(txList) {
+        const tbody = document.getElementById('transactions-body');
+        if (txList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4" style="color: #94a3b8;">No transactions found. Click a simulation button above!</td></tr>`;
+            return;
+        }
+
+        let html = '';
+        for (const tx of txList) {
+            let statusBadge = '';
+            if (tx.status === 'APPROVED') {
+                statusBadge = `<span class="badge-approved"><i class="fa-solid fa-circle-check me-1"></i> APPROVED</span>`;
+            } else if (tx.status === 'FRAUD_DETECTED') {
+                statusBadge = `<span class="badge-fraud"><i class="fa-solid fa-triangle-exclamation me-1"></i> FRAUD_DETECTED</span>`;
+            } else {
+                statusBadge = `<span class="badge-pending"><i class="fa-solid fa-clock me-1"></i> PENDING</span>`;
+            }
+
+            const formattedTime = tx.timestamp ? new Date(tx.timestamp).toLocaleTimeString() : 'Just now';
+            const reason = tx.fraudReason || 'Pending Kafka analysis';
+            
+            // Amount badge with high contrast
+            let amountHtml = '';
+            if (tx.amount > 10000) {
+                amountHtml = `<span style="color: #f87171; font-weight: 800; font-size: 1rem;">$${Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>`;
+            } else {
+                amountHtml = `<span style="color: #38bdf8; font-weight: 700; font-size: 0.95rem;">$${Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>`;
+            }
+
+            let reasonHtml = '';
+            if (tx.status === 'FRAUD_DETECTED') {
+                reasonHtml = `<span style="color: #fca5a5; font-weight: 600;">${reason}</span>`;
+            } else if (tx.status === 'APPROVED') {
+                reasonHtml = `<span style="color: #6ee7b7; font-weight: 600;">${reason}</span>`;
+            } else {
+                reasonHtml = `<span style="color: #fde047; font-weight: 500;">${reason}</span>`;
+            }
+
+            html += `
+                <tr>
+                    <td><span class="badge bg-dark border border-secondary text-light">#${tx.id}</span></td>
+                    <td style="color: #94a3b8; font-size: 0.85rem;">${formattedTime}</td>
+                    <td><code style="color: #f1f5f9; background: #0b1329; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 0.88rem; border: 1px solid #23354d;">${tx.accountId}</code></td>
+                    <td>${amountHtml}</td>
+                    <td><span class="badge bg-secondary text-light">${tx.currency}</span></td>
+                    <td>${statusBadge}</td>
+                    <td>${reasonHtml}</td>
+                </tr>
+            `;
+        }
+        tbody.innerHTML = html;
+    }
+
+    // 4. Update KPI numbers
+    function updateKPIs(txList) {
+        document.getElementById('kpi-total').innerText = txList.length;
+        document.getElementById('kpi-approved').innerText = txList.filter(t => t.status === 'APPROVED').length;
+        document.getElementById('kpi-high-value').innerText = txList.filter(t => (t.fraudReason || '').includes('HIGH_VALUE')).length;
+        document.getElementById('kpi-velocity').innerText = txList.filter(t => (t.fraudReason || '').includes('VELOCITY_SPIKE')).length;
+    }
+
+    // 5. Ingestion Helpers
+    async function ingestTx(accountId, amount, currency = "USD") {
+        if (!authToken) await initAuth();
+        try {
+            await fetch('/api/transactions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ accountId, amount, currency })
+            });
+            setTimeout(fetchTransactions, 400);
+        } catch (e) {
+            console.error("Ingest failed:", e);
+        }
+    }
+
+    // Simulation Triggers
+    function sendCleanTransaction() {
+        const id = 'ACC-CLEAN-' + Math.floor(100 + Math.random() * 900);
+        ingestTx(id, 500.00);
+    }
+
+    function sendHighValueAnomaly() {
+        const id = 'ACC-WHALE-' + Math.floor(100 + Math.random() * 900);
+        ingestTx(id, 25000.00);
+    }
+
+    async function sendVelocityBurst() {
+        const burstAcc = 'ACC-BURST-' + Math.floor(1000 + Math.random() * 9000);
+        for (let i = 1; i <= 4; i++) {
+            ingestTx(burstAcc, 120.00 + i);
+            await new Promise(r => setTimeout(r, 200));
+        }
+    }
+
+    function handleCustomSubmit(e) {
+        e.preventDefault();
+        const acc = document.getElementById('input-account').value;
+        const amt = parseFloat(document.getElementById('input-amount').value);
+        const curr = document.getElementById('input-currency').value;
+        ingestTx(acc, amt, curr);
+    }
+
+    // Start auto-poll every 2 seconds
+    initAuth();
+    setInterval(fetchTransactions, 2000);
+</script>
+
+</body>
+</html>

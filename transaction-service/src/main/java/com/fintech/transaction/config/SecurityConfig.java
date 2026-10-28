@@ -27,6 +27,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public authentication endpoint
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/", "/index.html", "/favicon.ico", "/static/**", "/css/**", "/js/**").permitAll()
                 // Role-Based Access Control (RBAC):
                 // Clients/Users can ingest transactions
                 .requestMatchers(HttpMethod.POST, "/api/transactions/**").hasAnyRole("USER", "CLIENT", "ADMIN")
