@@ -39,3 +39,18 @@ build/
 ### Others ###
 *.log
 *.class
+
+
+# Python
+__pycache__/
+*.py[cod]
+*.pkl
+*.joblib
+!ml-service/app/models/*.joblib
+
+# Python virtual environments
+venv/
+.venv/
+
+# Python environment variables
+.env

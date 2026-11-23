@@ -15,6 +15,10 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
 
   # Connect to Kafka Broker
   kafka:
@@ -28,3 +32,16 @@ spring:
         spring.json.trusted.packages: "*"
         spring.json.use.type.headers: false
         spring.json.value.default.type: "java.util.Map"
+
+fraud:
+  rules:
+    max-single-transaction-amount: 10000.00
+    max-velocity-count: 3
+    velocity-window-seconds: 60
+  ml-service:
+    url: ${ML_SERVICE_URL:http://localhost:8000}
+    # Experimental threshold tuned on synthetic validation data (not for autonomous banking settlement)
+    threshold: ${ML_FRAUD_THRESHOLD:0.14}
+    connect-timeout-ms: ${ML_CONNECT_TIMEOUT_MS:2000}
+    read-timeout-ms: ${ML_READ_TIMEOUT_MS:2000}
+    fallback-status: ${ML_FALLBACK_STATUS:MANUAL_REVIEW}
