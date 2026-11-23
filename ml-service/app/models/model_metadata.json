@@ -1,0 +1,34 @@
+{
+  "model_version": "v1.0.0",
+  "model_type": "CalibratedClassifierCV(RandomForestClassifier)",
+  "features": [
+    "amount",
+    "tx_count_last_1h",
+    "avg_amount_last_24h",
+    "amount_to_avg_ratio",
+    "velocity_60s",
+    "sin_hour",
+    "cos_hour"
+  ],
+  "optimal_threshold": 0.14,
+  "validation_metrics": {
+    "f1": 0.633,
+    "precision": 0.6763,
+    "recall": 0.5949
+  },
+  "test_metrics": {
+    "roc_auc": 0.8804,
+    "pr_auc": 0.4886,
+    "brier_score": 0.0513,
+    "precision": 0.3541,
+    "recall": 0.6781,
+    "f1": 0.4653,
+    "confusion_matrix": {
+      "TP": 375,
+      "FP": 684,
+      "TN": 8307,
+      "FN": 178
+    }
+  },
+  "disclaimer": "Domain-engineered synthetic dataset. Not for production financial settlement without manual review."
+}
