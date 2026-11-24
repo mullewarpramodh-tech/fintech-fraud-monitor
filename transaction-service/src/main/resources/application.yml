@@ -5,18 +5,18 @@ spring:
   application:
     name: transaction-service
   
-  # Neon Serverless Postgres Configuration with environment variable support
+  # Database Configuration: Credentials must be supplied via environment variables (SEC-03)
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://ep-dry-shape-ayu0rbwk.c-5.us-east-2.aws.neon.tech:5432/neondb?sslmode=require}
-    username: ${SPRING_DATASOURCE_USERNAME:neondb_owner}
-    password: ${SPRING_DATASOURCE_PASSWORD:npg_kbZEde71mMUI}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
 
-  # Local Embedded Kafka Configuration
+  # Kafka Configuration
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
@@ -25,6 +25,7 @@ spring:
       properties:
         spring.json.add.type.headers: false
 
+# JWT Configuration: Secret must be supplied via environment variable (SEC-04)
 jwt:
-  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
-  expiration: 86400000 # 24 hours
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION_MS:86400000} # 24 hours

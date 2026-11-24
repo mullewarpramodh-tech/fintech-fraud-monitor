@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -23,6 +24,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      * Returns 1 if successfully claimed, 0 if already claimed or finalized.
      * clearAutomatically = true ensures Hibernate first-level cache does not return stale entity state.
      */
+    @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Transaction t SET t.status = 'EVALUATING' WHERE t.id = :id AND t.status = 'PENDING'")
     int claimTransactionForEvaluation(@Param("id") Long id);
@@ -31,6 +33,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      * Crash recovery: Resets orphaned transactions stuck in EVALUATING after service failure/restart
      * back to PENDING so they can be re-evaluated.
      */
+    @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Transaction t SET t.status = 'PENDING' WHERE t.status = 'EVALUATING' AND t.timestamp < :staleThreshold")
     int resetStaleEvaluatingTransactions(@Param("staleThreshold") LocalDateTime staleThreshold);

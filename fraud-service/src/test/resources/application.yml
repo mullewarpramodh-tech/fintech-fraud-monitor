@@ -1,0 +1,47 @@
+server:
+  port: -1
+
+spring:
+  application:
+    name: fraud-service-test
+  datasource:
+    url: jdbc:h2:mem:fraud_it_db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ''
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  kafka:
+    consumer:
+      group-id: fraud-detection-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: "java.util.Map"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+fraud:
+  kafka:
+    dlt-topic: transaction-events-dlt
+    retry-interval-ms: 100
+    max-retry-attempts: 2
+  rules:
+    max-single-transaction-amount: 10000.00
+    max-velocity-count: 3
+    velocity-window-seconds: 60
+  ml-service:
+    url: http://localhost:8000
+    threshold: 0.14
+    connect-timeout-ms: 1000
+    read-timeout-ms: 1000
+    fallback-status: MANUAL_REVIEW
