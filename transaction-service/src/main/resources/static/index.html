@@ -174,14 +174,76 @@
             <span class="badge bg-dark border border-secondary text-info px-3 py-2">
                 <i class="fa-solid fa-database me-1"></i> Neon PostgreSQL
             </span>
-            <span class="badge bg-dark border border-secondary text-success px-3 py-2">
-                <i class="fa-solid fa-lock me-1"></i> RBAC: ROLE_ADMIN
+            <span class="badge bg-dark border border-secondary text-warning px-3 py-2" id="nav-auth-status">
+                <i class="fa-solid fa-lock me-1"></i> Not Authenticated
             </span>
+            <button class="btn btn-outline-danger btn-sm d-none" id="btn-nav-logout" onclick="handleLogout()">
+                <i class="fa-solid fa-right-from-bracket me-1"></i> Sign Out
+            </button>
         </div>
     </div>
 </nav>
 
 <div class="container-fluid px-4 mt-4">
+
+    <!-- Interactive Authentication Card -->
+    <div class="action-card p-4 mb-4" id="auth-panel">
+        <div id="auth-logged-out">
+            <div class="row align-items-center">
+                <div class="col-lg-5 mb-3 mb-lg-0">
+                    <h5 class="fw-bold mb-1 text-white">
+                        <i class="fa-solid fa-user-shield text-primary me-2"></i> Operator Authentication
+                    </h5>
+                    <p class="mb-0 small" style="color: #94a3b8;">
+                        Sign in with authorized credentials to ingest transactions and stream live audit records.
+                    </p>
+                </div>
+                <div class="col-lg-7">
+                    <form id="login-form" onsubmit="handleLogin(event)" class="row g-2 align-items-center">
+                        <div class="col-sm-4">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-dark border-secondary text-light"><i class="fa-solid fa-user"></i></span>
+                                <input type="text" class="form-control bg-dark border-secondary text-white" id="login-username" placeholder="Username" required autocomplete="username">
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-dark border-secondary text-light"><i class="fa-solid fa-key"></i></span>
+                                <input type="password" class="form-control bg-dark border-secondary text-white" id="login-password" placeholder="Password" required autocomplete="current-password">
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold" id="btn-login-submit">
+                                <i class="fa-solid fa-right-to-bracket me-1"></i> Sign In
+                            </button>
+                        </div>
+                    </form>
+                    <div id="login-error-msg" class="alert alert-danger py-1 px-3 mt-2 mb-0 small d-none" role="alert"></div>
+                </div>
+            </div>
+        </div>
+        <div id="auth-logged-in" class="d-none">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-2 rounded-circle" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+                        <i class="fa-solid fa-shield-check fs-4"></i>
+                    </div>
+                    <div>
+                        <span class="text-white fw-bold d-block">
+                            Authenticated as: <span id="display-username" class="text-info">--</span>
+                        </span>
+                        <span class="small" style="color: #94a3b8;">
+                            Assigned Role: <span id="display-role" class="badge bg-dark border border-secondary text-success">--</span>
+                            &bull; Token held in browser memory
+                        </span>
+                    </div>
+                </div>
+                <button class="btn btn-outline-danger btn-sm fw-semibold" onclick="handleLogout()">
+                    <i class="fa-solid fa-right-from-bracket me-1"></i> Sign Out
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- KPI Metric Cards -->
     <div class="row g-3 mb-4">
@@ -303,7 +365,7 @@
                 <p class="mb-0 small" style="color: #94a3b8;">Auto-refreshes every 2 seconds via authenticated JWT REST endpoints.</p>
             </div>
             <span class="badge bg-dark border border-secondary px-3 py-2" style="color: #38bdf8;" id="refresh-status">
-                <i class="fa-solid fa-rotate fa-spin me-1"></i> Live Stream Active
+                <i class="fa-solid fa-lock me-1"></i> Awaiting Sign In
             </span>
         </div>
 
@@ -322,7 +384,9 @@
                 </thead>
                 <tbody id="transactions-body">
                     <tr>
-                        <td colspan="7" class="text-center py-4" style="color: #94a3b8;">Connecting to Kafka ingestion stream...</td>
+                        <td colspan="7" class="text-center py-4" style="color: #94a3b8;">
+                            <i class="fa-solid fa-lock me-1 text-warning"></i> Sign in above to view transactions and live audit trail.
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -335,25 +399,124 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+    // State variables held strictly in browser memory (never in localStorage)
     let authToken = null;
+    let currentUser = null;
+    let currentRole = null;
+    let pollInterval = null;
 
-    // 1. Authenticate with Spring Security to acquire JWT token
-    async function initAuth() {
+    // 1. User-Driven Interactive Login
+    async function handleLogin(e) {
+        e.preventDefault();
+        const usernameInput = document.getElementById('login-username');
+        const passwordInput = document.getElementById('login-password');
+        const errorDiv = document.getElementById('login-error-msg');
+        const submitBtn = document.getElementById('btn-login-submit');
+
+        errorDiv.classList.add('d-none');
+        errorDiv.innerText = '';
+        submitBtn.disabled = true;
+
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+
         try {
             const resp = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: 'admin', role: 'ADMIN' })
+                body: JSON.stringify({ username, password })
             });
+
             const data = await resp.json();
+
+            if (!resp.ok) {
+                const message = data.error || (resp.status === 401 ? 'Invalid username or password' : 'Authentication failed');
+                errorDiv.innerText = message;
+                errorDiv.classList.remove('d-none');
+                submitBtn.disabled = false;
+                return;
+            }
+
+            // Store credentials strictly in browser memory
             authToken = data.token;
+            currentUser = data.username;
+            currentRole = data.role;
+
+            // Clear password input for security
+            passwordInput.value = '';
+            submitBtn.disabled = false;
+
+            // Update UI to authenticated state
+            updateAuthUI(true);
+
+            // Fetch initial transactions and start polling
             fetchTransactions();
-        } catch (e) {
-            console.error("Auth failed:", e);
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(fetchTransactions, 2000);
+
+        } catch (err) {
+            console.error("Login request failed:", err);
+            errorDiv.innerText = 'Unable to connect to authentication service.';
+            errorDiv.classList.remove('d-none');
+            submitBtn.disabled = false;
         }
     }
 
-    // 2. Fetch all transactions from REST endpoint
+    // 2. User-Driven Sign Out
+    function handleLogout() {
+        authToken = null;
+        currentUser = null;
+        currentRole = null;
+
+        if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+
+        updateAuthUI(false);
+
+        // Reset table and KPI displays
+        const tbody = document.getElementById('transactions-body');
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4" style="color: #94a3b8;"><i class="fa-solid fa-lock me-1 text-warning"></i> Sign in above to view transactions and live audit trail.</td></tr>`;
+        document.getElementById('refresh-status').innerHTML = `<i class="fa-solid fa-lock me-1"></i> Awaiting Sign In`;
+        document.getElementById('kpi-total').innerText = '0';
+        document.getElementById('kpi-approved').innerText = '0';
+        document.getElementById('kpi-high-value').innerText = '0';
+        document.getElementById('kpi-velocity').innerText = '0';
+    }
+
+    // Update UI elements based on authentication state
+    function updateAuthUI(isAuthenticated) {
+        const loggedOutPanel = document.getElementById('auth-logged-out');
+        const loggedInPanel = document.getElementById('auth-logged-in');
+        const navAuthStatus = document.getElementById('nav-auth-status');
+        const btnNavLogout = document.getElementById('btn-nav-logout');
+        const refreshStatus = document.getElementById('refresh-status');
+
+        if (isAuthenticated) {
+            loggedOutPanel.classList.add('d-none');
+            loggedInPanel.classList.remove('d-none');
+            document.getElementById('display-username').innerText = currentUser;
+            document.getElementById('display-role').innerText = currentRole;
+
+            navAuthStatus.className = 'badge bg-dark border border-success text-success px-3 py-2';
+            navAuthStatus.innerHTML = `<i class="fa-solid fa-user-check me-1"></i> ${currentUser} (${currentRole})`;
+            btnNavLogout.classList.remove('d-none');
+
+            refreshStatus.innerHTML = `<i class="fa-solid fa-rotate fa-spin me-1"></i> Live Stream Active`;
+        } else {
+            loggedOutPanel.classList.remove('d-none');
+            loggedInPanel.classList.add('d-none');
+
+            navAuthStatus.className = 'badge bg-dark border border-secondary text-warning px-3 py-2';
+            navAuthStatus.innerHTML = `<i class="fa-solid fa-lock me-1"></i> Not Authenticated`;
+            btnNavLogout.classList.add('d-none');
+
+            refreshStatus.innerHTML = `<i class="fa-solid fa-lock me-1"></i> Awaiting Sign In`;
+        }
+    }
+
+    // 3. Fetch transactions from REST endpoint (only when authenticated)
     async function fetchTransactions() {
         if (!authToken) return;
         try {
@@ -363,7 +526,13 @@
                     'Content-Type': 'application/json'
                 }
             });
-            if (!resp.ok) return;
+            if (!resp.ok) {
+                if (resp.status === 403) {
+                    const tbody = document.getElementById('transactions-body');
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4" style="color: #f87171;"><i class="fa-solid fa-ban me-1"></i> Access Denied: Viewing transactions requires ROLE_ADMIN or ROLE_AUDITOR (current role: ${currentRole}).</td></tr>`;
+                }
+                return;
+            }
 
             const transactions = await resp.json();
             transactions.sort((a, b) => b.id - a.id);
@@ -375,7 +544,7 @@
         }
     }
 
-    // 3. Render transactions to DOM
+    // 4. Render transactions to DOM
     function renderTable(txList) {
         const tbody = document.getElementById('transactions-body');
         if (txList.length === 0) {
@@ -397,7 +566,6 @@
             const formattedTime = tx.timestamp ? new Date(tx.timestamp).toLocaleTimeString() : 'Just now';
             const reason = tx.fraudReason || 'Pending Kafka analysis';
             
-            // Amount badge with high contrast
             let amountHtml = '';
             if (tx.amount > 10000) {
                 amountHtml = `<span style="color: #f87171; font-weight: 800; font-size: 1rem;">$${Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>`;
@@ -429,7 +597,7 @@
         tbody.innerHTML = html;
     }
 
-    // 4. Update KPI numbers
+    // 5. Update KPI numbers
     function updateKPIs(txList) {
         document.getElementById('kpi-total').innerText = txList.length;
         document.getElementById('kpi-approved').innerText = txList.filter(t => t.status === 'APPROVED').length;
@@ -437,9 +605,12 @@
         document.getElementById('kpi-velocity').innerText = txList.filter(t => (t.fraudReason || '').includes('VELOCITY_SPIKE')).length;
     }
 
-    // 5. Ingestion Helpers
+    // 6. Ingestion Helpers
     async function ingestTx(accountId, amount, currency = "USD") {
-        if (!authToken) await initAuth();
+        if (!authToken) {
+            alert("Please sign in with authorized credentials before ingesting transactions.");
+            return;
+        }
         try {
             await fetch('/api/transactions', {
                 method: 'POST',
@@ -482,9 +653,8 @@
         ingestTx(acc, amt, curr);
     }
 
-    // Start auto-poll every 2 seconds
-    initAuth();
-    setInterval(fetchTransactions, 2000);
+    // Initial load: do NOT auto-poll or auto-login with hardcoded credentials
+    updateAuthUI(false);
 </script>
 
 </body>

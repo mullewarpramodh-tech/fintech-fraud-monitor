@@ -33,7 +33,7 @@ class FraudDecisionEngineTest {
         when(featureExtractor.isSupportedCurrency("INR")).thenReturn(false);
         when(featureExtractor.isSupportedCurrency("EUR")).thenReturn(false);
 
-        decisionEngine = new FraudDecisionEngine(
+        decisionEngine = new DefaultFraudDecisionEngine(
                 new BigDecimal("10000.00"),
                 3,
                 0.14,

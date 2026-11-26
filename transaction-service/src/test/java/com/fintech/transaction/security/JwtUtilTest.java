@@ -59,4 +59,24 @@ class JwtUtilTest {
         String invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.signature";
         assertFalse(jwtUtil.validateToken(invalidToken));
     }
+
+    @Test
+    @DisplayName("Should fail safely when secret is null or blank (SEC-04)")
+    void shouldFailSafelyWhenSecretIsMissing() {
+        JwtUtil unconfigured = new JwtUtil();
+        ReflectionTestUtils.setField(unconfigured, "secret", null);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, unconfigured::validateAndInitializeKey);
+        assertTrue(ex.getMessage().contains("cannot be blank"));
+    }
+
+    @Test
+    @DisplayName("Should fail safely when secret is shorter than 256 bits (SEC-04)")
+    void shouldFailSafelyWhenSecretIsTooShort() {
+        JwtUtil weakJwt = new JwtUtil();
+        ReflectionTestUtils.setField(weakJwt, "secret", "short-key-less-than-32-bytes!"); // 29 chars
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, weakJwt::validateAndInitializeKey);
+        assertTrue(ex.getMessage().contains("too short"));
+    }
 }
